@@ -1,6 +1,7 @@
 from game_message import *
 from actions import *
 import random
+from marc import *
 
 import logging
 
@@ -56,17 +57,44 @@ class Bot:
             if crewmate.currentStation is None and crewmate.destination is None
         ]
 
+        # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
+
         for crewmate in idle_crewmates:
-            visitable_stations = (
-                crewmate.distanceFromStations.shields
-                + crewmate.distanceFromStations.turrets
-                + crewmate.distanceFromStations.helms
-                + crewmate.distanceFromStations.radars
+            # get the closest station to shoot
+
+            # check if crewmate is in a station
+            if crewmate.currentStation:
+                # if station is a turret
+                # if crewmate.
+
+                print(
+                    f"crewmate {crewmate.id} is in a station {crewmate.currentStation}"
+                )
+
+            station_to_go = get_closest_station_to_shoot(
+                game_message, crewmate, actions
             )
-            station_to_move_to = random.choice(visitable_stations)
-            actions.append(
-                CrewMoveAction(crewmate.id, station_to_move_to.stationPosition)
-            )
+
+            if station_to_go:
+                print(f"crewmate {crewmate.id} is going to station {station_to_go}")
+
+                # station_id_to_avoid_going.append(station_to_go.stationId)
+                # send the crewmate to the station
+                actions.append(
+                    CrewMoveAction(crewmate.id, station_to_go.stationPosition)
+                )
+
+        # for crewmate in idle_crewmates:
+        #     visitable_stations = (
+        #         crewmate.distanceFromStations.shields
+        #         + crewmate.distanceFromStations.turrets
+        #         + crewmate.distanceFromStations.helms
+        #         + crewmate.distanceFromStations.radars
+        #     )
+        #     station_to_move_to = random.choice(visitable_stations)
+        #     actions.append(
+        #         CrewMoveAction(crewmate.id, station_to_move_to.stationPosition)
+        #     )
 
         # Now crew members at stations should do something!
         operatedTurretStations = [
@@ -90,25 +118,25 @@ class Bot:
                 TurretShootAction(turret_station.id),
             ]
 
-            actions.append(random.choice(possible_actions))
+            # actions.append(random.choice(possible_actions))
 
         operatedHelmStation = [
             station
             for station in my_ship.stations.helms
             if station.operator is not None
         ]
-        if operatedHelmStation:
-            actions.append(ShipRotateAction(random.uniform(0, 360)))
+        # if operatedHelmStation:
+        #     actions.append(ShipRotateAction(random.uniform(0, 360)))
 
         operatedRadarStation = [
             station
             for station in my_ship.stations.radars
             if station.operator is not None
         ]
-        for radar_station in operatedRadarStation:
-            actions.append(
-                RadarScanAction(radar_station.id, random.choice(other_ships_ids))
-            )
+        # for radar_station in operatedRadarStation:
+        #     actions.append(
+        #         RadarScanAction(radar_station.id, random.choice(other_ships_ids))
+        #     )
 
         # You can clearly do better than the random actions above! Have fun!
         return actions
