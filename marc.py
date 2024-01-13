@@ -1,6 +1,7 @@
 from actions import *
 from game_message import *
-
+import math
+from alexis import *
 
 def get_station_id_by_vector(game_message: GameMessage, vector: Vector):
     """
@@ -78,7 +79,7 @@ def get_closest_station_to_shoot(
     game_message: GameMessage,
     crew: CrewMember,
     current_actions=[],
-    TURRET_TYPE=["NORMAL", "EMP"],
+    TURRET_TYPE=["NORMAL", "EMP"], #MARC CHECK
 ) -> Station:
     """
     For the moment only return the station turret that can rotate
@@ -91,6 +92,8 @@ def get_closest_station_to_shoot(
         # skip the station if it is in the list of station to avoid
         # if station.stationId in station_to_avoid:
         #     continue
+        
+            
 
         if not can_go_to_stationId(
             game_message, crew, station.stationId, current_actions
@@ -100,6 +103,7 @@ def get_closest_station_to_shoot(
         if station.stationId in all_turrets_station_ids:
             turrets.append(station)
 
+
     min_dist = 999
     min_station = None
     for turret in turrets:
@@ -108,6 +112,29 @@ def get_closest_station_to_shoot(
             min_station = turret
 
     return min_station
+
+    
+
+def calculate_turret_angle(game_message: GameMessage):
+    our_ship_position = game_message.shipsPositions[game_message.currentTeamId]
+    closest_distance = None
+    closest_enemy_ship = None
+    # Get the position of the closest enemy from our ship amongst all enemy ships
+    for shipId, shipPosition in game_message.shipsPositions.items():
+        if shipId != game_message.currentTeamId:
+            distance = calculate_distance(our_ship_position, shipPosition)
+            if closest_enemy_ship is None or distance < closest_distance:
+                closest_enemy_ship = shipId
+                closest_distance = distance
+    enemy_ship_position = game_message.shipsPositions[closest_enemy_ship]
+    angle = math.atan2(enemy_ship_position.y- our_ship_position.y, enemy_ship_position.x - our_ship_position.x)
+    return math.degrees(angle)
+
+def get_stationnary_turret(game_message: GameMessage):
+    #Get all station id thar are SNIPER, CANNON, FAST
+    all_turrets_stations = get_all_turrets_by_name(game_message, ["SNIPER", "CANNON", "FAST"])
+    all_turrets_station_ids = [station.id for station in all_turrets_stations]
+    return all_turrets_station_ids
 
 
 # def get_most_priority_action_for_crew(game_message: GameMessage, crew_id):
@@ -136,6 +163,64 @@ def get_closest_station_to_shoot(
 #     # check if we are at the right position
 #     if pos_crew_need_to_go != crew_pos:
 #         return CrewMoveAction(crew_id, pos_crew_need_to_go)
+
+def get_crewmate_at_helm(game_message: GameMessage):
+    """
+    return the crewmate at helm
+    """
+    for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        for station in crewmate.distanceFromStations.helms:
+            if crewmate.currentStation == station.stationId:
+                return crewmate
+
+def get_crewmate_going_to_helm(game_message: GameMessage):
+    """
+    return the crewmate going to helm
+    """
+    for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        for station in crewmate.distanceFromStations.helms:
+            if crewmate.destination:
+                if get_station_id_by_vector(game_message, crewmate.destination) == station.stationId:
+                    return crewmate
+
+def can_powerfull_turret_shoot(game_message: GameMessage, turret_id, current_actions=[]):
+    """
+    return True if the crewmate can shoot with a powerfull turret
+    """
+    for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        
+        if crewmate.currentStation == turret_id:
+            return True
+        if crewmate.destination:
+            if get_station_id_by_vector(game_message, crewmate.destination) == turret_id:
+                return True
+    for action in current_actions:
+        if isinstance(action, CrewMoveAction):
+            if get_station_id_by_vector(game_message, action.destination) == turret_id:
+                return True
+    return False
+
+def who_can_shoot_with_powerfull_turret(game_message: GameMessage, turret_id, current_actions=[]):
+    """
+    return the closest crowmate that can shoot with a powerfull turret
+    """
+    crewmate_closest = None
+    min_dist = 999
+    for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        if crewmate.currentStation == turret_id:
+            return crewmate
+        if crewmate.destination:
+            if get_station_id_by_vector(game_message, crewmate.destination) == turret_id:
+                return crewmate
+        if not can_powerfull_turret_shoot(game_message, turret_id, current_actions):
+            continue
+        if crewmate.distanceFromStations.turrets:
+            for turret in crewmate.distanceFromStations.turrets:
+                if turret.stationId == turret_id:
+                    if turret.distance < min_dist:
+                        min_dist = turret.distance
+                        crewmate_closest = crewmate
+    return crewmate_closest
 
 
 def get_crew_position(game_message, crew_id):
@@ -180,6 +265,7 @@ def find_closest_crewmate_to_list_of_station(crewmate, list_of_station):
             closest_station = station
 
     return closest_station
+
 
 
 def get_sheild_action(game_message, actions=[]):

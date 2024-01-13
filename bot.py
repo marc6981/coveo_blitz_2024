@@ -13,12 +13,17 @@ import logging
 #     format="%(asctime)s - %(levelname)s - %(message)s",
 # )
 # logging.info("Message")
-
+logging.basicConfig(filename='logging.txt', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Bot:
     def __init__(self):
         print("Initializing your super mega duper bot")
         self.someone_at_shield = False
+        self.someone_at_helm = False
+        self.correction_angle = 0
+        self.epsilon =0.01
+        self.attacker_mate = None
+        self.powerful_turret = None
 
     def first_tick(self, game_message: GameMessage):
         # print(f"type: {game_message.type}")
@@ -33,6 +38,40 @@ class Bot:
         # print(f"currentTeamId: {game_message.currentTeamId}")
         pass
 
+    def calculate_angle_to_rotate(self,game_message: GameMessage,TURRET_TYPE= ["SNIPER", "CANNON", "FAST"]):
+        turretss =None
+        #Get all station id thar are SNIPER, CANNON, FAST
+        for turrets in game_message.ships[game_message.currentTeamId].stations.turrets:
+            if turrets.turretType in TURRET_TYPE:
+                #Caculate angle between the turret and the enemy ship
+                enemy_station_angle = calculate_turret_angle(game_message)
+                self.correction_angle = enemy_station_angle - turrets.orientationDegrees
+                turretss = turrets
+        return turretss
+
+    def get_all_helm_station_id(self, game_message: GameMessage):
+        team_ship = get_infinite_loopers_ship(game_message)
+        helm_station_id,helm_grid_position = [(station.id, station.gridPosition) for station in team_ship.stations.helms]
+        return helm_station_id, helm_grid_position
+    
+    def find_closest_crewmate_to_helm(self,game_message: GameMessage,actions=[]):
+        min_dist = 999
+        helm_station = None
+        team_ship = get_infinite_loopers_ship(game_message)
+        for crewmate in team_ship.crew:
+
+            for station in crewmate.distanceFromStations.helms:
+                if not can_go_to_stationId(game_message, crewmate,station.stationId, actions):
+                    continue
+                if station.distance < min_dist:
+                    min_dist = station.distance
+                    helm_station = station
+                    crewmate_closest_station = crewmate            
+        if helm_station:
+            return CrewMoveAction(crewmate_closest_station.id, helm_station.stationPosition)
+
+   
+
     def get_next_move(self, game_message: GameMessage):
         """
         Here is where the magic happens, for now the moves are not very good. I bet you can do better ;)
@@ -42,9 +81,18 @@ class Bot:
         if game_message.tick == 1:
             self.first_tick(game_message)
 
-        # get priority actions
 
+        
+        #fIND CLOSEST CREWMATE TO HELM
+        #enleve de idle crewmate
+        #Faire l,action
+        # rotate jusqua temps que l'angle est self.best_angle
+
+        # get priority actions
+        #if self.correction_angle <= self.epsilon or self.correction_angle >= -self.epsilon:
+      
         actions = []
+       
 
         team_id = game_message.currentTeamId
         my_ship = game_message.ships.get(team_id)
@@ -58,7 +106,33 @@ class Bot:
             for crewmate in my_ship.crew
             if crewmate.currentStation is None and crewmate.destination is None
         ]
+        self.powerful_turret = self.calculate_angle_to_rotate(game_message)
 
+        print("Voici le correction_angle " +str(self.correction_angle))
+        if self.correction_angle !=0:
+            
+            # qqn au heml ou en direction du helm
+            crewmate_at_helm = get_crewmate_at_helm(game_message)
+            crewmate_going_to_helm = get_crewmate_going_to_helm(game_message)
+            if crewmate_at_helm:
+                actions.append(ShipRotateAction(self.correction_angle))
+            elif crewmate_going_to_helm is None :
+                action = self.find_closest_crewmate_to_helm(game_message)
+                if action:
+                    actions.append(action)
+                    # remove this crewmate from the idle crewmates
+                    idle_crewmates = [
+                        crewmate
+                        for crewmate in idle_crewmates
+                        if crewmate.id != action.crewMemberId
+                    ]
+        else:
+            crewmate_at_helm = get_crewmate_at_helm(game_message)
+            if crewmate_at_helm:
+                idle_crewmates.append(crewmate_at_helm)
+            crewmate_going_to_helm = get_crewmate_going_to_helm(game_message)
+            if crewmate_going_to_helm:
+                idle_crewmates.append(crewmate_going_to_helm)
         # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
 
         if not self.someone_at_shield:
@@ -89,7 +163,15 @@ class Bot:
                     ):
                         self.someone_at_shield = True
                         break
-
+        if can_powerfull_turret_shoot(game_message, self.powerful_turret,actions):
+            crewmate_that_can_shoot = who_can_shoot_with_powerfull_turret(game_message, self.powerful_turret,actions)
+            if crewmate_that_can_shoot:
+                actions.append(CrewMoveAction(crewmate_that_can_shoot.id, self.powerful_turret.position))
+                idle_crewmates = [
+                    crewmate
+                    for crewmate in idle_crewmates
+                    if crewmate.id != crewmate_that_can_shoot.id
+                ]
         for crewmate in idle_crewmates:
             station_to_go = get_closest_station_to_shoot(
                 game_message, crewmate, actions, TURRET_TYPE=["NORMAL", "EMP"]
@@ -105,6 +187,7 @@ class Bot:
                 )
 
             else:
+                
                 station_to_go = get_closest_station_to_shoot(
                     game_message,
                     crewmate,
