@@ -11,7 +11,7 @@ def choose_turret_actions(game_message: GameMessage, turretId: str):
     closest_enemy_ship = None
     closest_distance = None
 
-    # Get the position of closest enemy from our ship amongst all enemy ships
+    # Get the position of the closest enemy from our ship amongst all enemy ships
     for shipId, shipPosition in game_message.shipsPositions.items():
         if shipId != game_message.currentTeamId:
             distance = calculate_distance(our_ship_position, shipPosition)
@@ -23,20 +23,22 @@ def choose_turret_actions(game_message: GameMessage, turretId: str):
     turret_station = next((turret for turret in game_message.ships[game_message.currentTeamId].stations.turrets if turret.id == turretId), None)
 
     if turret_station is not None:
-        # Check if the turret is already aimed at the closest enemy ship
-        current_target = getattr(turret_station, 'currentTarget', None)
-        if current_target != closest_enemy_ship:
-            # Aim the turret at the closest enemy ship
-            actions.append(TurretLookAtAction(turretId, closest_enemy_ship))
-
-        # Check if the turret is at max charge
+        # Define max_charge for the turret
         max_charge = game_message.constants.ship.stations.turretInfos[turret_station.turretType].maxCharge
+
+        # If turret is at max charge, aim and shoot
         if turret_station.charge == max_charge:
-            # If turret is at max charge, append a TurretShootAction
+            closest_enemy_ship_position = game_message.shipsPositions.get(closest_enemy_ship)
+            if closest_enemy_ship_position:
+                # Aim at the closest enemy ship's position
+                actions.append(TurretLookAtAction(turretId, closest_enemy_ship_position))
+            
+            # Shoot action
             actions.append(TurretShootAction(turretId))
-        else:
-            # If the turret is not at max charge, charge it
+        # Else, if turret's charge is 0 or above and not at max charge, charge the turret
+        elif turret_station.charge >= 0 and turret_station.charge < max_charge:
             actions.append(TurretChargeAction(turretId))
+
     else:
         print(f"No turret station found with turretId: {turretId}")
 
