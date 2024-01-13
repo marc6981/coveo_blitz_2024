@@ -19,6 +19,8 @@ class Bot:
     def __init__(self):
         print("Initializing your super mega duper bot")
 
+        self.someone_at_shield = False
+
     def first_tick(self, game_message: GameMessage):
         # print(f"type: {game_message.type}")
         # print(f"tick: {game_message.tick}")
@@ -59,6 +61,28 @@ class Bot:
         ]
 
         # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
+
+        if not self.someone_at_shield:
+            action = get_sheild_action(game_message)
+
+            if action:
+                actions.append(action)
+                self.someone_at_shield = True
+        else:
+            # check all crewmates to see if at least one is at the shield
+            for crewmate in my_ship.crew:
+                if crewmate.currentStation and crewmate.currentStation == "SHIELDS":
+                    self.someone_at_shield = True
+                    break
+                # check if a crewmate is going to the shield
+                # for all stations shield in the  teamship.stations.shields
+                for shield_station in my_ship.stations.shields:
+                    if (
+                        crewmate.destination
+                        and crewmate.destination == shield_station.gridPosition
+                    ):
+                        self.someone_at_shield = True
+                        break
 
         for crewmate in idle_crewmates:
             station_to_go = get_closest_station_to_shoot(

@@ -85,7 +85,7 @@ def get_closest_station_to_shoot(
     """
     For the moment only return the station turret that can rotate
     """
-    all_turrets_stations = get_all_rotating_turrets(game_message, ROTABLE_TURRET)
+    all_turrets_stations = get_all_turrets_by_name(game_message, ROTABLE_TURRET)
     all_turrets_station_ids = [station.id for station in all_turrets_stations]
 
     turrets = []
@@ -167,25 +167,59 @@ def need_to_shield(game_message, threshold=50):
     return ship_shield / ship_max_shield < threshold / 100
 
 
-def get_sheild_action(game_message):
+def find_closest_crewmate_to_list_of_station(crewmate, list_of_station):
     """
-    need to find all the shield station and find the
+    for crewmate find the closest station in the list of station
     """
+    crewmate_pos = crewmate.position
+
+    closest_station = None
+    min_dist = 999
+    for station in list_of_station:
+        dist = station.position.distance(crewmate_pos)
+        if dist < min_dist:
+            min_dist = dist
+            closest_station = station
+
+    return closest_station
+
+
+def get_sheild_action(game_message, actions=[]):
+    """
+    for all crew find the closest shield station
+    """
+    min_dist = 999
+    min_station = None
+    crewmate_closest_station = None
+    for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        for station in crewmate.distanceFromStations.shields:
+            if not can_go_to_stationId(
+                game_message, crewmate, station.stationId, actions
+            ):
+                continue
+
+            if station.distance < min_dist:
+                min_dist = station.distance
+                min_station = station
+                crewmate_closest_station = crewmate
+
+    if min_station:
+        return CrewMoveAction(crewmate_closest_station.id, min_station.stationPosition)
 
     # return ShieldAction(game_message.currentTeamId)
 
 
-def get_all_rotating_turrets(game_message: GameMessage, rotating_turrets_list):
+def get_all_turrets_by_name(game_message: GameMessage, rotating_turrets_list):
     # Find all turrets that are not rotating
     ship = get_infinite_loopers_ship(game_message)
     rotating_turrets_list = ["NORMAL", "EMP"]
-    non_rotating_turrets = [
+    turretss = [
         turrets
         for turrets in ship.stations.turrets
-        if not turrets.turretType in rotating_turrets_list
+        if turrets.turretType in rotating_turrets_list
     ]
     # logging.info("Non rotating turrets: " + str(non_rotating_turrets))
-    return non_rotating_turrets
+    return turretss
 
 
 def get_infinite_loopers_ship(game_message: GameMessage):
