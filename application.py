@@ -19,9 +19,13 @@ async def run():
     async with websockets.connect(uri, max_size=None) as websocket:
         bot = Bot()
         if "TOKEN" in os.environ:
-            await websocket.send(json.dumps({"type": "REGISTER", "token": os.environ["TOKEN"]}))
+            await websocket.send(
+                json.dumps({"type": "REGISTER", "token": os.environ["TOKEN"]})
+            )
         else:
-            await websocket.send(json.dumps({"type": "REGISTER", "teamName": "MyPythonicBot"}))
+            await websocket.send(
+                json.dumps({"type": "REGISTER", "teamName": "MyPythonicBot"})
+            )
 
         await game_loop(websocket=websocket, bot=bot)
 
@@ -39,10 +43,10 @@ async def game_loop(websocket: websockets.WebSocketServerProtocol, bot: Bot):
         print(f"Playing tick {game_message.tick}")
 
         if game_message.lastTickErrors:
-            print(f'Errors during last tick : {game_message.lastTickErrors}')
+            print(f"Errors during last tick : {game_message.lastTickErrors}")
 
         actions = []
-        
+
         # Just so your bot doesn't completely crash. ;)
         try:
             actions = bot.get_next_move(game_message)
@@ -53,7 +57,7 @@ async def game_loop(websocket: websockets.WebSocketServerProtocol, bot: Bot):
         payload = {
             "type": "COMMAND",
             "tick": game_message.tick,
-            "actions": [dataclasses.asdict(action) for action in actions]
+            "actions": [dataclasses.asdict(action) for action in actions],
         }
 
         print(json.dumps(payload))

@@ -68,6 +68,7 @@ class Grid:
     height: int
     width: int
 
+
 @unique
 class TurretType(str, Enum):
     Normal = "NORMAL"
@@ -75,6 +76,7 @@ class TurretType(str, Enum):
     Cannon = "CANNON"
     Sniper = "SNIPER"
     EMP = "EMP"
+
 
 @dataclass
 class TurretConstants:
