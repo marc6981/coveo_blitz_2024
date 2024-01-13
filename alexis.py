@@ -26,16 +26,17 @@ def choose_turret_actions(game_message: GameMessage, turretId: str):
         # Define max_charge for the turret
         max_charge = game_message.constants.ship.stations.turretInfos[turret_station.turretType].maxCharge
 
-        # If turret is at max charge, aim and shoot
-        if turret_station.charge == max_charge:
+        # If turret's charge is exactly 0, aim at the closest enemy ship's position
+        if turret_station.charge == 0:
             closest_enemy_ship_position = game_message.shipsPositions.get(closest_enemy_ship)
             if closest_enemy_ship_position:
-                # Aim at the closest enemy ship's position
                 actions.append(TurretLookAtAction(turretId, closest_enemy_ship_position))
-            
-            # Shoot action
+
+        # If turret is at max charge, shoot
+        if turret_station.charge == max_charge:
             actions.append(TurretShootAction(turretId))
-        # Else, if turret's charge is 0 or above and not at max charge, charge the turret
+
+        # If turret's charge is 0 or above and not at max charge, charge the turret
         elif turret_station.charge >= 0 and turret_station.charge < max_charge:
             actions.append(TurretChargeAction(turretId))
 
@@ -44,3 +45,5 @@ def choose_turret_actions(game_message: GameMessage, turretId: str):
 
     print("Actions: ", actions)
     return actions
+
+
