@@ -3,6 +3,7 @@ from actions import *
 import random
 from marc import *
 from alexis import *
+from simon import *
 import logging
 
 # LOGGING_FOLDER = "logs"
@@ -21,6 +22,16 @@ class Bot:
 
         self.someone_at_shield = False
 
+        #RADAR 
+        self.RADAR_FREQIENCE = 200
+        self.last_radar_tick = self.RADAR_FREQIENCE / 2
+        self.crewRadar = None
+        self.radar_queue = []
+
+        
+
+
+
     def first_tick(self, game_message: GameMessage):
         # print(f"type: {game_message.type}")
         # print(f"tick: {game_message.tick}")
@@ -38,6 +49,7 @@ class Bot:
         """
         Here is where the magic happens, for now the moves are not very good. I bet you can do better ;)
         """
+
         # If first tick
         logging.info(f"Tick: {game_message.tick}")
         if game_message.tick == 1:
@@ -59,6 +71,58 @@ class Bot:
             for crewmate in my_ship.crew
             if crewmate.currentStation is None and crewmate.destination is None
         ]
+
+
+
+
+
+
+
+
+
+    
+        if self.crewRadar == None and self.last_radar_tick >= self.RADAR_FREQIENCE:
+            self.crewRadar = idle_crewmates[0]    ##TODO find the right crewmate to go to radar
+            self.radar_queue = create_radar_queue(game_message)
+        else:
+            self.last_radar_tick += 1
+
+
+
+
+
+        if(self.crewRadar):
+           
+            if self.crewRadar.currentStation == "RADAR":
+                if len(self.radar_queue) == 0:
+                    self.last_radar_tick = 0
+                    idle_crewmates.append(self.crewRadar)
+                    self.crewRadar = None
+
+                else:
+                    actions.append(self.radar_queue.pop(0))
+                    print("scan complete at tick: " + str(game_message.tick))
+                
+                
+            elif not self.crewRadar.destination:
+                actions.append(closest_radar_from_crewmate(game_message, self.crewRadar, actions))
+
+            
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
 
@@ -139,4 +203,5 @@ class Bot:
         #     )
 
         # You can clearly do better than the random actions above! Have fun!
+        print(f"actions: {actions}")
         return actions
