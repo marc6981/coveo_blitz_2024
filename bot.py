@@ -24,6 +24,7 @@ class Bot:
         self.epsilon =0.01
         self.attacker_mate = None
         self.powerful_turret = None
+        self.crewmate_force_to_idle = []
 
     def first_tick(self, game_message: GameMessage):
         # print(f"type: {game_message.type}")
@@ -36,6 +37,7 @@ class Bot:
         # print(f"shipsPositions: {game_message.shipsPositions}")
         # print(f"ships: {game_message.ships}")
         # print(f"currentTeamId: {game_message.currentTeamId}")
+
         pass
 
     def calculate_angle_to_rotate(self,game_message: GameMessage,TURRET_TYPE= ["SNIPER", "CANNON", "FAST"]):
@@ -81,7 +83,7 @@ class Bot:
         if game_message.tick == 1:
             self.first_tick(game_message)
 
-
+        self.crewmate_force_to_idle = []
         
         #fIND CLOSEST CREWMATE TO HELM
         #enleve de idle crewmate
@@ -106,6 +108,7 @@ class Bot:
             for crewmate in my_ship.crew
             if crewmate.currentStation is None and crewmate.destination is None
         ]
+
         self.powerful_turret = self.calculate_angle_to_rotate(game_message)
 
         print("Voici le correction_angle " +str(self.correction_angle))
@@ -129,9 +132,11 @@ class Bot:
         else:
             crewmate_at_helm = get_crewmate_at_helm(game_message)
             if crewmate_at_helm:
+                self.crewmate_force_to_idle.append(crewmate_at_helm)
                 idle_crewmates.append(crewmate_at_helm)
             crewmate_going_to_helm = get_crewmate_going_to_helm(game_message)
             if crewmate_going_to_helm:
+                self.crewmate_force_to_idle.append(crewmate_going_to_helm)
                 idle_crewmates.append(crewmate_going_to_helm)
         # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
 
@@ -164,7 +169,8 @@ class Bot:
                         self.someone_at_shield = True
                         break
         if can_powerfull_turret_shoot(game_message, self.powerful_turret,actions):
-            crewmate_that_can_shoot = who_can_shoot_with_powerfull_turret(game_message, self.powerful_turret,actions)
+            skip_crewmate = [c.id for c in self.crewmate_force_to_idle]
+            crewmate_that_can_shoot = who_can_shoot_with_powerfull_turret(game_message, self.powerful_turret,actions,skip_crewmate)
             if crewmate_that_can_shoot:
                 actions.append(CrewMoveAction(crewmate_that_can_shoot.id, self.powerful_turret.position))
                 idle_crewmates = [

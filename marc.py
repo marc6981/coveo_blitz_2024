@@ -200,13 +200,16 @@ def can_powerfull_turret_shoot(game_message: GameMessage, turret_id, current_act
                 return True
     return False
 
-def who_can_shoot_with_powerfull_turret(game_message: GameMessage, turret_id, current_actions=[]):
+def who_can_shoot_with_powerfull_turret(game_message: GameMessage, turret_id, current_actions=[],crewmate_skip=[]):
     """
     return the closest crowmate that can shoot with a powerfull turret
     """
     crewmate_closest = None
     min_dist = 999
     for crewmate in game_message.ships[game_message.currentTeamId].crew:
+        if crewmate.id not in crewmate_skip and crewmate.currentStation == turret_id:
+            return crewmate
+
         if crewmate.currentStation == turret_id:
             return crewmate
         if crewmate.destination:
