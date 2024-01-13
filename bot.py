@@ -3,6 +3,7 @@ from actions import *
 import random
 from marc import *
 from alexis import *
+from simon import *
 import logging
 
 # LOGGING_FOLDER = "logs"
@@ -25,6 +26,17 @@ class Bot:
         self.attacker_mate = None
         self.powerful_turret = None
         self.crewmate_force_to_idle = []
+
+        #RADAR 
+        self.RADAR_FREQIENCE = 200
+        self.last_radar_tick = self.RADAR_FREQIENCE / 2
+        self.crewRadar = None
+        self.radar_queue = []
+        self.crewRadarId = None
+
+        
+
+
 
     def first_tick(self, game_message: GameMessage):
         # print(f"type: {game_message.type}")
@@ -78,6 +90,7 @@ class Bot:
         """
         Here is where the magic happens, for now the moves are not very good. I bet you can do better ;)
         """
+
         # If first tick
         logging.info(f"Tick: {game_message.tick}")
         if game_message.tick == 1:
@@ -94,7 +107,9 @@ class Bot:
         #if self.correction_angle <= self.epsilon or self.correction_angle >= -self.epsilon:
       
         actions = []
-       
+
+        if self.crewRadarId:
+            self.crewRadar = find_crew_by_id(game_message, self.crewRadarId)
 
         team_id = game_message.currentTeamId
         my_ship = game_message.ships.get(team_id)
@@ -138,7 +153,44 @@ class Bot:
             if crewmate_going_to_helm:
                 self.crewmate_force_to_idle.append(crewmate_going_to_helm)
                 idle_crewmates.append(crewmate_going_to_helm)
-        # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
+
+        if self.crewRadar == None and self.last_radar_tick >= self.RADAR_FREQIENCE:
+            crewRadar = find_right_crewmate(game_message)
+            if crewRadar:
+                self.crewRadarId = find_right_crewmate(game_message)    
+                self.radar_queue = create_radar_queue(game_message)
+        else:
+            self.last_radar_tick += 1
+
+         if(self.crewRadar):
+            print(f"ABCD + {self.crewRadar}")
+            radarIds = get_radar_id(game_message)
+            print (f"radarIds: {radarIds}")
+            #print (f"currentStation: {self.crewRadar.currentStation}")
+            print(f"crewRadar: {self.crewRadar}")
+            if self.crewRadar.currentStation in radarIds:
+                print("ON EST DANS LE IF")
+                if len(self.radar_queue) == 0:
+                    self.last_radar_tick = 0
+                    idle_crewmates.append(self.crewRadar)
+                    
+                    self.crewRadar = None
+                    self.crewRadarId = None
+
+                else:
+                    actions.append(self.radar_queue.pop(0))
+                    print("scan complete at tick: " + str(game_message.tick))
+                
+                
+            elif not self.crewRadar.destination:
+                actions.append(closest_radar_from_crewmate(game_message, self.crewRadar, actions))
+
+        if(self.crewRadar == None):
+            crewRadars = get_crew_at_radar(game_message)
+            if len(crewRadars) is not 0:
+                for c in crewRadars:
+                    idle_crewmates.append(c)
+            
 
         if not self.someone_at_shield:
             action = get_sheild_action(game_message)
@@ -209,20 +261,7 @@ class Bot:
                     actions.append(
                         CrewMoveAction(crewmate.id, station_to_go.stationPosition)
                     )
-
-        # for crewmate in idle_crewmates:
-        #     visitable_stations = (
-        #         crewmate.distanceFromStations.shields
-        #         + crewmate.distanceFromStations.turrets
-        #         + crewmate.distanceFromStations.helms
-        #         + crewmate.distanceFromStations.radars
-        #     )
-        #     station_to_move_to = random.choice(visitable_stations)
-        #     actions.append(
-        #         CrewMoveAction(crewmate.id, station_to_move_to.stationPosition)
-        #     )
-
-        # Now crew members at stations should do something!
+                    
         operatedTurretStations = [
             station
             for station in my_ship.stations.turrets
@@ -251,4 +290,5 @@ class Bot:
         #     )
 
         # You can clearly do better than the random actions above! Have fun!
+        print(f"actions: {actions}")
         return actions
