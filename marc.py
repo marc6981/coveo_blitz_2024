@@ -11,8 +11,19 @@ def get_station_id_by_vector(game_message: GameMessage, vector: Vector):
     """
     return the station id by the vector
     """
-    for station in game_message.ships[game_message.currentTeamId].stations:
-        if station.position == vector:
+    for station in game_message.ships[game_message.currentTeamId].stations.turrets:
+        if station.gridPosition == vector:
+            return station.id
+
+    for station in game_message.ships[game_message.currentTeamId].stations.shields:
+        if station.gridPosition == vector:
+            return station.id
+
+    for station in game_message.ships[game_message.currentTeamId].stations.radars:
+        if station.gridPosition == vector:
+            return station.id
+    for station in game_message.ships[game_message.currentTeamId].stations.helms:
+        if station.gridPosition == vector:
             return station.id
 
 
@@ -41,18 +52,18 @@ def can_go_to_stationId(
     """
     return True if the crew can go to the stationId
     """
-    # check if the crew is already at the station
-    if crew.currentStation and crew.currentStation == stationId:
-        return False
+    # # check if the crew is already at the station
+    # if crew.currentStation and crew.currentStation == stationId:
+    #     return False
 
-    # check if the crew is already going to the station
-    if crew.destination and crew.destination == stationId:
-        return False
+    # # check if the crew is already going to the station
+    # if crew.destination and crew.destination == stationId:
+    #     return False
 
     # check if the someone else is going to the station in the current actions
     for action in current_actions:
         if isinstance(action, CrewMoveAction):
-            if action.destination == stationId:
+            if get_station_id_by_vector(game_message, action.destination) == stationId:
                 return False
 
     return True

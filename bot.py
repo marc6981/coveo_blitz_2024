@@ -20,16 +20,17 @@ class Bot:
         print("Initializing your super mega duper bot")
 
     def first_tick(self, game_message: GameMessage):
-        print(f"type: {game_message.type}")
-        print(f"tick: {game_message.tick}")
-        print(f"lastTickErrors: {game_message.lastTickErrors}")
-        print(f"constants: {game_message.constants}")
-        print(f"currentTickNumber: {game_message.currentTickNumber}")
-        print(f"debris: {game_message.debris}")
-        print(f"rockets: {game_message.rockets}")
-        print(f"shipsPositions: {game_message.shipsPositions}")
-        print(f"ships: {game_message.ships}")
-        print(f"currentTeamId: {game_message.currentTeamId}")
+        # print(f"type: {game_message.type}")
+        # print(f"tick: {game_message.tick}")
+        # print(f"lastTickErrors: {game_message.lastTickErrors}")
+        # print(f"constants: {game_message.constants}")
+        # print(f"currentTickNumber: {game_message.currentTickNumber}")
+        # print(f"debris: {game_message.debris}")
+        # print(f"rockets: {game_message.rockets}")
+        # print(f"shipsPositions: {game_message.shipsPositions}")
+        # print(f"ships: {game_message.ships}")
+        # print(f"currentTeamId: {game_message.currentTeamId}")
+        pass
 
     def get_next_move(self, game_message: GameMessage):
         """
@@ -61,7 +62,6 @@ class Bot:
 
         for crewmate in idle_crewmates:
             # get the closest station to shoot
-
             # check if crewmate is in a station
             if crewmate.currentStation:
                 # if station is a turret
@@ -97,7 +97,11 @@ class Bot:
         #     )
 
         # Now crew members at stations should do something!
-        operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
+        operatedTurretStations = [
+            station
+            for station in my_ship.stations.turrets
+            if station.operator is not None
+        ]
         for turret_station in operatedTurretStations:
             turret_actions = choose_turret_actions(game_message, turret_station.id)
             actions.extend(turret_actions)
