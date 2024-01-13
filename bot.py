@@ -61,16 +61,6 @@ class Bot:
         # station_id_to_avoid_going = get_station_to_avoid_going(game_message)
 
         for crewmate in idle_crewmates:
-            # get the closest station to shoot
-            # check if crewmate is in a station
-            if crewmate.currentStation:
-                # if station is a turret
-                # if crewmate.
-
-                print(
-                    f"crewmate {crewmate.id} is in a station {crewmate.currentStation}"
-                )
-
             station_to_go = get_closest_station_to_shoot(
                 game_message, crewmate, actions
             )

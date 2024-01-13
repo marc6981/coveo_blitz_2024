@@ -52,18 +52,28 @@ def can_go_to_stationId(
     """
     return True if the crew can go to the stationId
     """
-    # # check if the crew is already at the station
-    # if crew.currentStation and crew.currentStation == stationId:
-    #     return False
-
-    # # check if the crew is already going to the station
-    # if crew.destination and crew.destination == stationId:
-    #     return False
-
     # check if the someone else is going to the station in the current actions
     for action in current_actions:
         if isinstance(action, CrewMoveAction):
             if get_station_id_by_vector(game_message, action.destination) == stationId:
+                return False
+
+    # check for all crew if they are going to the station
+    for crew_member in game_message.ships[game_message.currentTeamId].crew:
+        if crew_member.id == crew.id:
+            continue
+
+        if crew_member.destination:
+            if (
+                get_station_id_by_vector(game_message, crew_member.destination)
+                == stationId
+            ):
+                return False
+
+    # check if someone is already at the station
+    for station in game_message.ships[game_message.currentTeamId].stations.turrets:
+        if station.id == stationId:
+            if station.operator:
                 return False
 
     return True
