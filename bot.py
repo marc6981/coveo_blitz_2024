@@ -18,7 +18,6 @@ import logging
 class Bot:
     def __init__(self):
         print("Initializing your super mega duper bot")
-
         self.someone_at_shield = False
 
     def first_tick(self, game_message: GameMessage):
@@ -68,6 +67,13 @@ class Bot:
             if action:
                 actions.append(action)
                 self.someone_at_shield = True
+                # remove this crewmate from the idle crewmates
+                idle_crewmates = [
+                    crewmate
+                    for crewmate in idle_crewmates
+                    if crewmate.id != action.crewMemberId
+                ]
+
         else:
             # check all crewmates to see if at least one is at the shield
             for crewmate in my_ship.crew:
@@ -86,7 +92,7 @@ class Bot:
 
         for crewmate in idle_crewmates:
             station_to_go = get_closest_station_to_shoot(
-                game_message, crewmate, actions
+                game_message, crewmate, actions, TURRET_TYPE=["NORMAL", "EMP"]
             )
 
             if station_to_go:
@@ -97,6 +103,23 @@ class Bot:
                 actions.append(
                     CrewMoveAction(crewmate.id, station_to_go.stationPosition)
                 )
+
+            else:
+                station_to_go = get_closest_station_to_shoot(
+                    game_message,
+                    crewmate,
+                    actions,
+                    TURRET_TYPE=["FAST", "CANNON", "SNIPER"],
+                )
+
+                if station_to_go:
+                    print(f"crewmate {crewmate.id} is going to station {station_to_go}")
+
+                    # station_id_to_avoid_going.append(station_to_go.stationId)
+                    # send the crewmate to the station
+                    actions.append(
+                        CrewMoveAction(crewmate.id, station_to_go.stationPosition)
+                    )
 
         # for crewmate in idle_crewmates:
         #     visitable_stations = (
