@@ -2,11 +2,6 @@ from actions import *
 from game_message import *
 
 
-ROTABLE_TURRET = ["NORMAL", "EMP"]
-ROTABLE_NOT_TURRET = []
-TURRET = []
-
-
 def get_station_id_by_vector(game_message: GameMessage, vector: Vector):
     """
     return the station id by the vector
@@ -80,12 +75,15 @@ def can_go_to_stationId(
 
 
 def get_closest_station_to_shoot(
-    game_message: GameMessage, crew: CrewMember, current_actions=[]
+    game_message: GameMessage,
+    crew: CrewMember,
+    current_actions=[],
+    TURRET_TYPE=["NORMAL", "EMP"],
 ) -> Station:
     """
     For the moment only return the station turret that can rotate
     """
-    all_turrets_stations = get_all_turrets_by_name(game_message, ROTABLE_TURRET)
+    all_turrets_stations = get_all_turrets_by_name(game_message, TURRET_TYPE)
     all_turrets_station_ids = [station.id for station in all_turrets_stations]
 
     turrets = []
@@ -205,8 +203,6 @@ def get_sheild_action(game_message, actions=[]):
 
     if min_station:
         return CrewMoveAction(crewmate_closest_station.id, min_station.stationPosition)
-
-    # return ShieldAction(game_message.currentTeamId)
 
 
 def get_all_turrets_by_name(game_message: GameMessage, rotating_turrets_list):
