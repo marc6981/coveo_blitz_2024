@@ -2,17 +2,17 @@ from game_message import *
 from actions import *
 import random
 from marc import *
-
+from alexis import *
 import logging
 
-LOGGING_FOLDER = "logs"
+# LOGGING_FOLDER = "logs"
 
-logging.basicConfig(
-    filename="logs/logging.txt",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-logging.info("Message")
+# logging.basicConfig(
+#     filename="logs/logging.txt",
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s",
+# )
+# logging.info("Message")
 
 
 class Bot:
@@ -97,28 +97,10 @@ class Bot:
         #     )
 
         # Now crew members at stations should do something!
-        operatedTurretStations = [
-            station
-            for station in my_ship.stations.turrets
-            if station.operator is not None
-        ]
+        operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
         for turret_station in operatedTurretStations:
-            possible_actions = [
-                # Charge the turret.
-                TurretChargeAction(turret_station.id),
-                # Aim the turret itself.
-                TurretLookAtAction(
-                    turret_station.id,
-                    Vector(
-                        random.uniform(0, game_message.constants.world.width),
-                        random.uniform(0, game_message.constants.world.height),
-                    ),
-                ),
-                # Shoot!
-                TurretShootAction(turret_station.id),
-            ]
-
-            # actions.append(random.choice(possible_actions))
+            turret_actions = choose_turret_actions(game_message, turret_station.id)
+            actions.extend(turret_actions)
 
         operatedHelmStation = [
             station
