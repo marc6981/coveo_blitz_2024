@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import json
 import os
+import traceback
 
 import cattrs
 import websockets
@@ -40,10 +41,19 @@ async def game_loop(websocket: websockets.WebSocketServerProtocol, bot: Bot):
         if game_message.lastTickErrors:
             print(f'Errors during last tick : {game_message.lastTickErrors}')
 
+        actions = []
+        
+        # Just so your bot doesn't completely crash. ;)
+        try:
+            actions = bot.get_next_move(game_message)
+        except Exception:
+            print("Exception while getting next moves:")
+            print(traceback.format_exc())
+
         payload = {
             "type": "COMMAND",
             "tick": game_message.tick,
-            "actions": [dataclasses.asdict(action) for action in bot.get_next_move(game_message)]
+            "actions": [dataclasses.asdict(action) for action in actions]
         }
 
         print(json.dumps(payload))
